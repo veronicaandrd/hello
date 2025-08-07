@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="light">
 
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,8 +11,49 @@
 <body>
 
 
-<div class="toggle"><img src="https://veronicaandrd.github.io/hello/assets/newmoon.png" class="newmoon"></div>
+<div data-theme-toggle class="toggle">
+    <div class="moon"></div>
+</div>
+  
+
+<script>
+  function calculateSettingAsThemeString({ localStorageTheme }) {
+  return localStorageTheme !== null ? localStorageTheme : "light";
+}
 
 
+function updateThemeOnHtmlEl({ theme }) {
+  document.querySelector("html").setAttribute("data-theme", theme);
+
+  const themedEl = document.querySelector(".theme-bg");
+  if (themedEl) {
+    const bgUrl = theme === "dark"
+      ? "url('/images/dark-background.jpg')"
+      : "url('/images/light-background.jpg')";
+    themedEl.style.backgroundImage = bgUrl;
+  }
+}
+
+
+const button = document.querySelector("[data-theme-toggle]");
+const localStorageTheme = localStorage.getItem("theme");
+
+
+let currentThemeSetting = calculateSettingAsThemeString({ localStorageTheme });
+
+
+updateThemeOnHtmlEl({ theme: currentThemeSetting });
+
+
+button.addEventListener("click", () => {
+  const newTheme = currentThemeSetting === "dark" ? "light" : "dark";
+
+  localStorage.setItem("theme", newTheme);
+  updateThemeOnHtmlEl({ theme: newTheme });
+
+  currentThemeSetting = newTheme;
+});
+
+  </script>
 </body>
 </html>
