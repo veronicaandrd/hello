@@ -28,3 +28,8 @@ body {
     margin: 8px;
     left: 0;
 }
+
+.newmoon:hover, .fullmoon:hover {
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+}
