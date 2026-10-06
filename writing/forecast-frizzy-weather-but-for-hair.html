@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forecast: Frizzy (Weather, but for Hair) — Veronica Andrade</title>
+<meta name="description" content="Designing for Things That Can't Talk Back, by Veronica Andrade.">
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/styles.css">
+<script src="../js/main.js" defer></script>
+</head>
+<body>
+
+<div class="edge t"></div><div class="edge l"></div><div class="edge r"></div>
+
+<div class="pill pill-name reveal" style="--i:0">
+  <a href="../index.html" id="home" aria-label="Veronica Andrade — home">Veronica Andrade</a>
+  <span class="tz" tabindex="0" aria-label="Local time in UTC-3">
+    <span class="utc">(UTC-3)</span><span class="time" id="time">--:--</span>
+  </span>
+</div>
+<nav class="pill pill-nav reveal" style="--i:0" aria-label="Main">
+  <a href="../index.html#writing">Writing</a>
+  <a href="https://www.linkedin.com/in/your-handle" target="_blank" rel="noopener">LinkedIn</a>
+  <a href="https://github.com/your-handle" target="_blank" rel="noopener">GitHub</a>
+</nav>
+<div class="pill pill-theme reveal" style="--i:6">
+  <button id="theme" type="button" aria-label="Switch color theme">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+    <span id="theme-label">Dark</span>
+  </button>
+</div>
+<div class="pill pill-top" id="top">
+  <button type="button" id="top-btn">Top
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+</div>
+
+<main class="article">
+  <article class="col">
+    <header class="article-head">
+      <a class="tag reveal" style="--i:1" href="../index.html#writing">Writing</a>
+      <h1 class="reveal" style="--i:2">Forecast: Frizzy<br>(Weather, but for Hair)</h1>
+      <p class="meta reveal" style="--i:3"><span>Veronica Andrade</span><span aria-hidden="true">·</span><time datetime="2026-09-16">Oct 4, 2026</time></p>
+    </header>
+
+    <!-- Media: <figure class="fig"> works anywhere in .prose. Use <img> or <video autoplay muted loop playsinline>. Set --ar to the width/height ratio. -->
+    <figure class="fig reveal" style="--i:4;--ar:1.84">
+      <video src="../assets/frizzy02.mp4" autoplay muted loop playsinline></video>
+    </figure>
+
+    <div class="prose reveal" style="--i:5">
+      <p>Since my master's research on technoanimism, I've kept experimenting with mediating data and noisy inputs into something else. Weather apps tell me it's 24°C and 48% humidity. Cool, but what does that mean for my hair? This small experiment takes a weather feed and renders it as a short sentence, inspired by the old <a target="_blank" href="https://medium.com/@hiponcho/giving-weather-a-wake-up-the-poncho-app-a788f0273e27">Poncho</a> weather app (and my very own experience of getting puffy hair in humid environments).</p>
+
+      <h2>The itch</h2>
+
+      <p>I wanted to see if the idea was actually fun and useful before committing to a native widget. So I scoped the first version down to the cheapest thing I could build to test it: a <a href="" target="_blank">webpage with a widget-style card</a>, built with Claude. Everything runs client-side in plain HTML, CSS and JS, with no build step. Weather comes from <a target="_blank" href="https://open-meteo.com/">Open-Meteo</a>, which is free and needs no API key.</p>
+
+      <p>Since it isn't a native widget, I wanted the browser version to act and feel like one. The card is draggable like a macOS widget, using pointer events so mouse and touch share one code path. It's clamped to the viewport, and its position persists between visits:</p>
+
+      <figure class="fig reveal" style="--i:4;--ar:1.84">
+        <video src="../assets/frizzy_clip01.mp4" autoplay muted loop playsinline></video>
+      </figure>
+
+      <h2>The rules</h2>
+
+      <p>The core is a small rules engine. Weather data becomes a "state", and each state owns a bank of lines. The two never mix, so I can retune thresholds without touching the jokes/puns, or the reverse. Thresholds live in one config object:</p>
+
+      <pre class="code" tabindex="0"><code>const T = {
+  gustWeight: 0.75, 
+  rainLight: 0.5, rainMod: 2, rainHeavy: 7.5, <em>// mm/h</em>
+  windBreeze: 20, windStrong: 30, windSevere: 45, <em>// km/h</em>
+  humidRH: 70, veryHumidRH: 80, soupRH: 90, <em>// % RH</em>
+  good:   { t: [15, 25], rh: [35, 65], wind: 20 }, 
+  utopia: { t: [18, 25], rh: [40, 55], wind: 15 } 
+};</code></pre>
+      
+      <p>Rules are an ordered list where the first match wins, so the order is the priority:</p>
+
+      <pre class="code" tabindex="0"><code>const RULES = [
+  { id: 'storm', cond: 'wind', test: w => w.rain >= T.rainMod && w.eff >= T.windStrong },
+  { id: 'gale',  cond: 'wind', test: w => w.eff >= T.windSevere },
+  // ...
+  { id: 'ok', test: () => true } // fallback
+];
+const rule = RULES.find(r => r.test(weather));</code></pre>
+      
+      <p>I first wrote the thresholds and priority order myself before generating any code, and tested the rules with ChatGPT's help. Some interesting cases showed up:</p>
+      
+      <p><em>1. Humidity somewhat depends on temperature.</em> The same relative humidity can have different implications for hair depending on the temperature. 85% humidity at 10°C suggests cold, damp air, while 85% at 30°C adds heat and sweat. The system combines humidity with temperature when deciding which hair-weather condition to trigger.</p>
+
+      <p><em>2. Gusts escalate wind.</em> A moderate sustained wind can feel much more disruptive when gusts are significantly stronger. E.g., 15 km/h sustained wind with 35 km/h gusts isn't really the same as a steady 15 km/h breeze: the gusts can suddenly move and tangle hair, so the system uses them to escalate the wind category when they cross higher thresholds:</p>
+
+      <pre class="code" tabindex="0"><code>W.eff = Math.max(W.wind, W.gust * T.gustWeight);</code></pre>
+
+      <p>A super simple debug/tuning panel lets me preview different lines, locations and weather conditions using a couple of force-state options. Gradients shift with the weather, with each condition family getting its own palette.</p>
+
+      <figure class="fig reveal" style="--i:4;--ar:1.84">
+        <video src="../assets/frizzy_clip02.mp4" autoplay muted loop playsinline></video>
+      </figure>
+
+      <h2>The copy</h2>
+
+      <p>I asked Claude which LLM I should use to generate the jokes live, and the answer was that I didn't really need one: a small rules engine with a hand-edited line bank is free, predictable, and fast, and it means every line the widget can say has been read by a human (me). The AI's best job was helping me <em>write</em> the line bank, rather than coming up with a new line for every weather update. Lines are stored per state, with placeholders for real values:</p>
+      
+      <pre class="code" tabindex="0"><code>const LINES = {
+  gale: [
+    "Wind's out here modeling harder than you. Secure the strands.",
+    "{wind} km/h gusts. Loose hair is a hostage situation."
+  ],
+  // ...
+};</code></pre>
+
+      <h2>Where I stopped</h2>
+
+      <p>I considered a native macOS widget and decided against it. The browser version already answered the part I was curious about, and I was able to share it with friends and get their feedback on it.</p>
+
+      <p>One thing I took away from building it was that having the rules figured out before jumping into pair coding with Claude made the whole process much smoother, and also reinforced something I keep coming back to with prototypes (and, as a designer, always worth keeping in mind): you often don't need to build much to find out what you want to know. In this case, a few rules and a distinctive tone of voice were enough to validate the idea before spending more time adding features or turning it into a proper macOS widget.</p>
+      
+      <p>If I picked it up again, I'd probably play around with basic hair-type settings. The same 85% humidity means something very different for straight, wavy or curly hair, which could make the recommendations a little more personal and (probably) more accurate.</p>
+
+      <p>In the meantime, you can check out the prototype <a href="https://veronicaandrd.github.io/frizzy/" target="_blank">here</a>. Hope the forecast is kind to your hair.</p>
+
+      <aside class="footnotes" aria-labelledby="notes-title">
+      <p><em>Built with HTML, CSS, vanilla JS, and Claude. Weather data by <a target="_blank" href="https://open-meteo.com/">Open-Meteo.com</a>.</em></p>
+      </aside>
+
+    </div>
+  </article>
+</main>
+
+</body>
+</html>
