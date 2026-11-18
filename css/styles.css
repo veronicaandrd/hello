@@ -82,6 +82,10 @@ svg {
   transition: transform .25s var(--ease)
 }
 
+.not-allowed {
+  cursor: not-allowed;
+}
+
 /* ---------- Fixed pills ---------- */
 .pill {
   position: fixed;
